@@ -1,7 +1,10 @@
 FROM rust:1.82
 
 WORKDIR /usr/src/app
-COPY . .
+
+COPY src/ src/
+COPY Cargo.toml Cargo.toml
+COPY .env .env
 
 RUN cargo install --path .
 

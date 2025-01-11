@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use chrono::Utc;
 use std::path::{Path, PathBuf};
-use tracing::info;
+use tracing::{info, warn};
 use tracing_subscriber;
 
 mod notify;
@@ -38,15 +38,14 @@ async fn main() {
 
     tokio::spawn(async move {
         //TODO: raise alarm every second, send notifications evry 60 secs.
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(600));
         loop {
             interval.tick().await;
             match check(path, num_of_recs) {
                 Ok(_) => info!("recordings are working fine."),
                 Err(e) => {
-                    info!("{}", e);
-                    // TODO: send mails less frequently
-                    //notify::send_mail().await;
+                    warn!("{}", e);
+                    notify::send_mail().await;
                 }
             }
         }
