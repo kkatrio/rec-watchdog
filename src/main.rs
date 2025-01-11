@@ -29,7 +29,7 @@ fn check(path: &Path, num_of_recs: usize) -> Result<()> {
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::ERROR)
+        .with_max_level(tracing::Level::INFO)
         .init();
 
     //TODO: update path
@@ -37,7 +37,8 @@ async fn main() {
     let num_of_recs = 8;
 
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(5));
+        //TODO: raise alarm every second, send notifications evry 60 secs.
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
         loop {
             interval.tick().await;
             match check(path, num_of_recs) {
