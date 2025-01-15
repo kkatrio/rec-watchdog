@@ -32,8 +32,7 @@ async fn main() {
         .with_max_level(tracing::Level::INFO)
         .init();
 
-    //TODO: update path
-    let path = Path::new("/mnt/diskos/recordings");
+    let path = Path::new("/mnt/diskos/frigatestorage/recordings");
     let num_of_recs = 8;
 
     tokio::spawn(async move {
