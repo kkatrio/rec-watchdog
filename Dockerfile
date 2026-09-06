@@ -1,10 +1,9 @@
 FROM rust:alpine3.22
 
-WORKDIR /usr/src/app
+WORKDIR /usr/src/watch
 
 COPY src/ src/
 COPY Cargo.toml Cargo.toml
-COPY .env .env
 
 RUN cargo install --path .
 

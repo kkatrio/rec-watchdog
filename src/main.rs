@@ -44,17 +44,20 @@ impl std::error::Error for WatchError {}
 
 fn check_recs(hourly_dir_path: &Path) -> Result<(), WatchError> {
     let mut cams = 0;
-    for cdir in std::fs::read_dir(hourly_dir_path)? {
+    // folder could still be empty because we checked only a few seconds after :00
+    let readdir = std::fs::read_dir(hourly_dir_path).map_err(|_| WatchError::NotFound)?;
+    for cdir in readdir {
         let cdir = cdir?;
         info!("checking dir: {:?}", cdir.file_name());
         let mut creations: Vec<_> = std::fs::read_dir(cdir.path())?
             .filter_map(|direntry| direntry.ok())
             .filter_map(|entry| entry.metadata().ok())
-            .filter_map(|m| m.created().ok())
+            // created is not available in docker, prefer modified
+            .filter_map(|m| m.modified().ok())
             .collect();
 
         creations.sort();
-        // folder could be empty because we checked only a few seconds after :00
+
         let latest = creations.last().ok_or(WatchError::NotFound)?;
 
         let now = std::time::SystemTime::now();
