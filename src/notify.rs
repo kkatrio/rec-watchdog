@@ -1,10 +1,8 @@
-use dotenv;
 use mail_builder::MessageBuilder;
 use mail_send::SmtpClientBuilder;
 use std::env;
 
 pub async fn send_mail() {
-    dotenv::dotenv().ok();
     let smtp_user = env::var("SMTP_USER").expect("SMTP_USER must be set in .env");
     let smtp_pass = env::var("SMTP_PASS").expect("SMTP_PASS must be set in .env");
     let from_addr = env::var("FROM_ADDR").expect("FROM_ADDR must be set in .env");
