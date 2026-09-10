@@ -1,7 +1,7 @@
 use std::fmt;
 use std::io::{Error, ErrorKind};
 use std::path::Path;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 mod ipc;
 mod notify;
@@ -44,15 +44,17 @@ impl std::error::Error for WatchError {}
 
 fn check_recs(hourly_dir_path: &Path) -> Result<(), WatchError> {
     let mut cams = 0;
+    // if NFS is not mounted, read_dir returns error here
+    let readdir = std::fs::read_dir(hourly_dir_path)?;
     // folder could still be empty because we checked only a few seconds after :00
-    let readdir = std::fs::read_dir(hourly_dir_path).map_err(|_| WatchError::NotFound)?;
+    // in this case no error but readdir is empty, Some Missing error returned below
     for cdir in readdir {
         let cdir = cdir?;
-        info!("checking dir: {:?}", cdir.file_name());
+        debug!("checking dir: {:?}", cdir.file_name());
         let mut creations: Vec<_> = std::fs::read_dir(cdir.path())?
             .filter_map(|direntry| direntry.ok())
             .filter_map(|entry| entry.metadata().ok())
-            // created is not available in docker, prefer modified
+            // created is not available in a docker container, prefer modified
             .filter_map(|m| m.modified().ok())
             .collect();
 
@@ -81,25 +83,22 @@ fn watchnfs(path: &str) -> std::io::Result<()> {
     // https://docs.frigate.video/configuration/record
 
     let now = chrono::Utc::now();
-    //mnt/diskos/frigatestorage/recordings/2026-09-04/00
     let path = format!("{}/{}/{}", path, now.format("%Y-%m-%d"), now.format("%H"));
     let hourly_dir = Path::new(&path);
 
-    for _ in 1..3 {
+    for _ in 1..10 {
         match check_recs(hourly_dir) {
             Ok(_) => return Ok(()),
             // could be a timing issue -- retry
             Err(WatchError::NotFound) => {
                 warn!("Not found -- retrying in 10 seconds");
             }
+            // maybe right after :00, directory exists but still empty
+            Err(WatchError::SomeMissing) => {
+                warn!("Some missing -- retrying in 10 seconds");
+            }
             // critical errors
             Err(WatchError::Io(error)) => return Err(error),
-            Err(WatchError::SomeMissing) => {
-                return Err(Error::new(
-                    ErrorKind::NotFound,
-                    "Some recordings are missing",
-                ))
-            }
             Err(WatchError::TimeError(_)) => {
                 return Err(Error::other("should not happen -- time conversion error"))
             }
