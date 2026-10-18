@@ -2,6 +2,7 @@ use std::fmt;
 use std::io::{Error, ErrorKind};
 use std::path::Path;
 use tracing::{debug, error, info, warn};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod ipc;
 mod notify;
@@ -124,7 +125,7 @@ fn watchnfs(path: &str) -> std::io::Result<()> {
                 }
             }
         }
-        std::thread::sleep(std::time::Duration::from_secs(10));
+        std::thread::sleep(std::time::Duration::from_secs(15));
     }
 
     let error = match last_error {
@@ -142,15 +143,22 @@ fn watchnfs(path: &str) -> std::io::Result<()> {
 #[tokio::main]
 async fn main() {
     let timer = tracing_subscriber::fmt::time::ChronoLocal::rfc_3339();
-    tracing_subscriber::fmt()
-        .compact()
-        .with_file(true)
-        .with_line_number(true)
-        .with_timer(timer)
+
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| format!("{}=warn", env!("CARGO_CRATE_NAME")).into()),
+        )
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_timer(timer)
+                .with_file(true)
+                .with_line_number(true),
+        )
         .init();
 
-    dotenv::dotenv().ok();
-    let rec_path = dotenv::var("NFS_REC_PATH").expect("NFS_REC_PATH must be set in .env");
+    dotenvy::dotenv().ok();
+    let rec_path = dotenvy::var("NFS_REC_PATH").expect("NFS_REC_PATH must be set in .env");
 
     loop {
         match watchnfs(&rec_path) {

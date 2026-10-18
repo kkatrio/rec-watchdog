@@ -28,10 +28,10 @@ impl IpcMessage {
 
 // printf "\x01\x00\x00\x05" | nc 127.0.0.1 8080
 pub async fn send_alarm_notification(message: IpcMessage) -> std::io::Result<()> {
-    let mut addrs_iter = "olympus:8080".to_socket_addrs().unwrap();
+    let mut addrs_iter = "olympus:8080".to_socket_addrs()?;
     let addr = addrs_iter
         .next()
-        .expect("addr must be created out of the domain");
+        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "address not found"))?;
     let mut stream = TcpStream::connect_timeout(&addr, std::time::Duration::from_secs(2))?;
     println!("connected to olympus");
 
