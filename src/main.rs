@@ -165,7 +165,9 @@ async fn main() {
             Ok(_) => info!("recordings are working fine"),
             Err(e) => {
                 error!("{}", e);
-                notify::send_mail().await;
+                if let Err(e) = notify::send_mail().await {
+                    error!(error = %e, "failed to send email");
+                }
                 let res = tokio::spawn(ipc::send_alarm_notification(ipc::IpcMessage::MakeNoise));
                 if res.await.is_err() {
                     error!("failed to send message notification to olympus");

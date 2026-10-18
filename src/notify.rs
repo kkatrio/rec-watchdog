@@ -2,12 +2,17 @@ use mail_builder::MessageBuilder;
 use mail_send::SmtpClientBuilder;
 use std::env;
 
-pub async fn send_mail() {
-    let smtp_user = env::var("SMTP_USER").expect("SMTP_USER must be set in .env");
-    let smtp_pass = env::var("SMTP_PASS").expect("SMTP_PASS must be set in .env");
-    let from_addr = env::var("FROM_ADDR").expect("FROM_ADDR must be set in .env");
-    let to_addr1 = env::var("TO_ADDR1").expect("TO_ADDR1 must be set in .env");
-    let to_addr2 = env::var("TO_ADDR2").expect("TO_ADDR2 must be set in .env");
+pub async fn send_mail() -> std::io::Result<()> {
+    let smtp_user =
+        env::var("SMTP_USER").map_err(|e| std::io::Error::new(std::io::ErrorKind::NotFound, e))?;
+    let smtp_pass =
+        env::var("SMTP_PASS").map_err(|e| std::io::Error::new(std::io::ErrorKind::NotFound, e))?;
+    let from_addr =
+        env::var("FROM_ADDR").map_err(|e| std::io::Error::new(std::io::ErrorKind::NotFound, e))?;
+    let to_addr1 =
+        env::var("TO_ADDR1").map_err(|e| std::io::Error::new(std::io::ErrorKind::NotFound, e))?;
+    let to_addr2 =
+        env::var("TO_ADDR2").map_err(|e| std::io::Error::new(std::io::ErrorKind::NotFound, e))?;
 
     // Build a simple multipart message
     let message = MessageBuilder::new()
@@ -27,8 +32,9 @@ pub async fn send_mail() {
         .credentials((smtp_user.as_str(), smtp_pass.as_str()))
         .connect()
         .await
-        .unwrap()
+        .map_err(|_| std::io::Error::other("could not connect to smtp gmail"))?
         .send(message)
         .await
-        .unwrap();
+        .map_err(|_| std::io::Error::other("could not send with smtp gmail"))?;
+    Ok(())
 }
